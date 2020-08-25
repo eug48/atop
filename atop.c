@@ -442,6 +442,21 @@ static struct {
 	{	"pacctdir",		do_pacctdir,		1, },
 };
 
+// call this function to start a nanosecond-resolution timer
+struct timespec timer_start(){
+    struct timespec start_time;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
+    return start_time;
+}
+
+// call this function to end a timer, returning nanoseconds elapsed as a long
+long timer_end(struct timespec start_time){
+    struct timespec end_time;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time);
+    long diffInNanos = (end_time.tv_sec - start_time.tv_sec) * (long)1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    return diffInNanos;
+}
+
 /*
 ** internal prototypes
 */
@@ -754,6 +769,8 @@ engine(void)
 	static struct tstat	*curtpres;	/* current present list      */
 	static unsigned long	 curtlen;	/* size of present list      */
 	struct tstat		*curpexit;	/* exited process list	     */
+	int			useprocall = 0;
+	FILE *timelog = NULL;
 
 	static struct devtstat	devtstat;	/* deviation info	     */
 
@@ -779,6 +796,23 @@ engine(void)
 	ptrverify(cursstat, "Malloc failed for current sysstats\n");
 	ptrverify(presstat, "Malloc failed for prev    sysstats\n");
 	ptrverify(devsstat, "Malloc failed for deviate sysstats\n");
+
+	if (getenv("USE_PROC_ALL") != NULL)
+	{
+		useprocall = atoi(getenv("USE_PROC_ALL"));
+	}
+
+	if (useprocall == 0)
+	{
+		timelog = fopen("proc.csv", "w");
+		fprintf(timelog, "/proc time,units\n");
+	}
+	else
+	{
+		timelog = fopen("procall.csv", "w");
+		fprintf(timelog, "/proc/all time,units\n");
+	}
+	
 
 	/*
 	** install the signal-handler for ALARM, USR1 and USR2 (triggers
@@ -928,18 +962,35 @@ engine(void)
 		*/
 		curtpres  = NULL;
 
-		do
+		curtlen   = counttasks();	// worst-case value
+		curtpres  = realloc(curtpres, curtlen * sizeof(struct tstat));
+		ptrverify(curtpres, "Malloc failed for %lu tstats\n", curtlen);
+		memset(curtpres, 0, curtlen * sizeof(struct tstat));
+
+		struct timespec vartime = timer_start();
+		long time_elapsed_ns;
+
+		if (useprocall == 0)
 		{
-			curtlen   = counttasks();	// worst-case value
-			curtpres  = realloc(curtpres,
-					curtlen * sizeof(struct tstat));
+			do
+			{
+			}
+			while ( (ntaskpres = photoproc(curtpres, curtlen)) == curtlen);
 
-			ptrverify(curtpres, "Malloc failed for %lu tstats\n",
-								curtlen);
-
-			memset(curtpres, 0, curtlen * sizeof(struct tstat));
+			time_elapsed_ns = timer_end(vartime);
+			fprintf(timelog, "%ld,ms\n", time_elapsed_ns / 1000 / 1000);
+			fflush(timelog);
 		}
-		while ( (ntaskpres = photoproc(curtpres, curtlen)) == curtlen);
+		else
+		{
+			/* code */
+			ntaskpres = photoprocall(curtpres, curtlen);
+
+			time_elapsed_ns = timer_end(vartime);
+			fprintf(timelog, "%ld,ms\n", time_elapsed_ns / 1000 / 1000);
+			fflush(timelog);
+		}
+
 
 		/*
 		** register processes that exited during last sample;

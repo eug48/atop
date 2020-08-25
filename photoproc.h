@@ -187,4 +187,5 @@ void		deviattask(struct tstat *, unsigned long,
  		           struct devtstat *, struct sstat *);
 
 unsigned long	photoproc(struct tstat *, int);
+unsigned long	photoprocall(struct tstat *, int);
 unsigned long	counttasks(void);

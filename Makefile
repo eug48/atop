@@ -21,9 +21,10 @@ PMPATH2  = /usr/lib64/pm-utils/sleep.d
 PMPATHD  = /usr/lib/systemd/system-sleep
 
 CFLAGS  += -O2 -I. -Wall  # -DNOPERFEVENT   # -DHTTPSTATS
+#CFLAGS  += -g -I. -Wall  # -DNOPERFEVENT   # -DHTTPSTATS
 OBJMOD0  = version.o
 OBJMOD1  = various.o  deviate.o   procdbase.o
-OBJMOD2  = acctproc.o photoproc.o photosyst.o  rawlog.o ifprop.o parseable.o
+OBJMOD2  = acctproc.o photoproc.o photoprocall.o photosyst.o  rawlog.o ifprop.o parseable.o
 OBJMOD3  = showgeneric.o          showlinux.o  showsys.o showprocs.o
 OBJMOD4  = atopsar.o  netatopif.o gpucom.o
 ALLMODS  = $(OBJMOD0) $(OBJMOD1) $(OBJMOD2) $(OBJMOD3) $(OBJMOD4)
@@ -197,6 +198,7 @@ procdbase.o:	atop.h	photoproc.h
 acctproc.o:	atop.h	photoproc.h atopacctd.h  acctproc.h netatop.h
 netatopif.o:	atop.h	photoproc.h              netatopd.h netatop.h
 photoproc.o:	atop.h	photoproc.h
+photoprocall.o:	atop.h	photoproc.h
 photosyst.o:	atop.h	            photosyst.h
 showgeneric.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
 showlinux.o:	atop.h	photoproc.h photosyst.h  showgeneric.h showlinux.h
